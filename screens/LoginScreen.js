@@ -10,11 +10,9 @@ import {
   TextInput,
   Keyboard,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 
-
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [inputEmailBgColor, setInputEmailBgColor] = useState("#F8F8F8");
   const [inputPasswordBgColor, setInputPasswordBgColor] = useState("#F8F8F8");
 
@@ -22,7 +20,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -44,13 +41,12 @@ export default function LoginScreen() {
     };
   }, []);
 
-
   const handleKeyboard = () => {
     Keyboard.dismiss();
   };
 
   const handleLogin = () => {
-    Alert.alert("Data", `${email} + ${password}`);
+    console.log("Credentials", `${email} + ${password}`);
   };
 
   return (
@@ -68,10 +64,7 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <TextInput
                 placeholder="Email"
-                style={[
-                  styles.input, 
-                  { borderColor: inputEmailBgColor }
-                ]}
+                style={[styles.input, { borderColor: inputEmailBgColor }]}
                 onChangeText={(text) => setEmail(text)}
                 onFocus={() => setInputEmailBgColor("#FF6C00")}
                 onBlur={() => setInputEmailBgColor("#F8F8F8")}
@@ -80,10 +73,7 @@ export default function LoginScreen() {
               <TextInput
                 placeholder="Password"
                 secureTextEntry={true}
-                style={[
-                  styles.input, 
-                  { borderColor: inputPasswordBgColor }
-                ]}
+                style={[styles.input, { borderColor: inputPasswordBgColor }]}
                 onChangeText={(text) => setPassword(text)}
                 onFocus={() => setInputPasswordBgColor("#FF6C00")}
                 onBlur={() => setInputPasswordBgColor("#F8F8F8")}
@@ -98,9 +88,15 @@ export default function LoginScreen() {
                   >
                     <Text style={styles.btnTitle}>Login</Text>
                   </TouchableOpacity>
-                  <Text style={styles.link}>
-                    Don't have an account? Sign Up
-                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.link}
+                    onPress={() => navigation.navigate("Registration")}
+                  >
+                    <Text style={styles.linkText}>
+                      Don't have an account? Sign Up
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -141,8 +137,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   input: {
-    paddingLeft:16,
     marginTop: 15,
+    paddingLeft:16,
     height: 50,
     backgroundColor: "#F6F6F6",
     borderWidth: 1,
@@ -155,7 +151,6 @@ const styles = StyleSheet.create({
     background: "#FF6C00",
     borderRadius: 100,
     borderWidth: 1,
-    height: 51,
     marginTop: 40,
     justifyContent: "center",
     alignItems: "center",
@@ -176,8 +171,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   link: {
+    backgroundColor: "transparent",
     marginTop: 15,
     fontSize: 18,
     textAlign: "center",
+  },
+  linkText: {
+    textAlign: "center",
+    color: "#1B4371",
+    fontSize: 18,
   },
 });

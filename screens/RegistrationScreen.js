@@ -10,11 +10,9 @@ import {
   TextInput,
   Keyboard,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 
-
-export default function RegistrationScreen() {
+export default function RegistrationScreen({ navigation }) {
   const [inputLoginBgColor, setInputLoginBgColor] = useState("#F8F8F8");
   const [inputEmailBgColor, setInputEmailBgColor] = useState("#F8F8F8");
   const [inputPasswordBgColor, setInputPasswordBgColor] = useState("#F8F8F8");
@@ -50,7 +48,7 @@ export default function RegistrationScreen() {
   };
 
   const handleRegistration = () => {
-    Alert.alert("Data", `${login} + ${email} + ${password}`);
+    console.log("Credentials", `${login} + ${email} + ${password}`);
   };
 
   return (
@@ -81,7 +79,7 @@ export default function RegistrationScreen() {
                 onChangeText={(text) => setEmail(text)}
                 onFocus={() => setInputEmailBgColor("#FF6C00")}
                 onBlur={() => setInputEmailBgColor("#F8F8F8")}
-                // textAlign={"left"}
+                textAlign={"left"}
               />
               <TextInput
                 placeholder="Password"
@@ -101,9 +99,15 @@ export default function RegistrationScreen() {
                   >
                     <Text style={styles.btnTitle}>Sign Up</Text>
                   </TouchableOpacity>
-                  <Text style={styles.link}>
-                    Already have an account? Log in
-                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.link}
+                    onPress={() => navigation.navigate("Login")}
+                  >
+                    <Text style={styles.linkText}>
+                      Already have an account? Log in
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -152,8 +156,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   input: {
-    paddingLeft:16, 
     marginTop: 15,
+    paddingLeft: 16,
     height: 50,
     backgroundColor: "#F6F6F6",
     borderWidth: 1,
@@ -166,7 +170,6 @@ const styles = StyleSheet.create({
     background: "#FF6C00",
     borderRadius: 100,
     borderWidth: 1,
-    height: 51,
     marginTop: 40,
     justifyContent: "center",
     alignItems: "center",
@@ -187,8 +190,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   link: {
+    backgroundColor: "transparent",
     marginTop: 15,
     fontSize: 18,
     textAlign: "center",
+  },
+  linkText: {
+    textAlign: "center",
+    color: "#1B4371",
+    fontSize: 18,
   },
 });
