@@ -4,7 +4,11 @@ export const posts = [
       title: "Like a boss",
       likes: 69,
       comments: 2,
-      location: "Kryvyi Rig, Ukraine",
+      photoLocation: {
+        latitude: 47.9096600,
+        longitude: 33.3804400,
+      },
+      inputLocation: "Kryviy Rih, Ukraine",
       id: "1",
     },
 ];

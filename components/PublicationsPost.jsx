@@ -1,9 +1,9 @@
 import { EvilIcons } from "@expo/vector-icons";
 
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 
-export const PublicationsPost = ({ item }) => {
-  const { photo, title, comments, location } = item;
+export const PublicationsPost = ({ item, navigation }) => {
+  const { photo, title, comments, photoLocation, inputLocation } = item;
   return (
     <>
       <Image
@@ -14,13 +14,22 @@ export const PublicationsPost = ({ item }) => {
       />
       <Text style={styles.title}>{title}</Text>
       <View style={styles.informationBox}>
-        <View style={styles.spanBox}>
+      <TouchableOpacity
+          style={styles.spanBox}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("Comments")}
+        >
           <EvilIcons name="comment" size={24} color="black" />
           <Text>{comments}</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.spanBox}>
           <EvilIcons name="location" size={24} color="black" />
-          <Text>{location}</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Map", { photoLocation })}
+          >
+            <Text>{inputLocation}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </>

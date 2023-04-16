@@ -1,6 +1,16 @@
 import { EvilIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 
+import { Camera } from "expo-camera";
+
+import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
+import * as Location from "expo-location";
+
+import { shareAsync } from "expo-sharing";
+
+import uuid from "react-native-uuid";
+
 import {
   View,
   Text,
@@ -9,13 +19,175 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
+  ImageBackground,
 } from "react-native";
 
-const CreatPostScreen = () => {
+import { useEffect, useRef, useState } from "react";
+import { CameraOptions } from "../components/CameraOptions";
+import { CameraButtons } from "../components/CameraButton";
+
+const CreatPostScreen = ({ navigation }) => {
+  let cameraRef = useRef(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState();
+  const [hasMediaLibraryPermission, setHasMediaLibraryPermission] = useState();
+  const [photo, setPhoto] = useState(null); 
+  const [postPhoto, setPostPhoto] = useState("");
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState(Camera.Constants.Type.back);
+
+  const [location, setLocation] = useState(null);
+  const [inputLocation, setInputLocation] = useState("");
+
+  const [buttonBgColor, setButtonBgColorBgColor] = useState("#F8F8F8");
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setPostPhoto(result.assets[0].uri);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      const cameraPermission = await Camera.requestCameraPermissionsAsync();
+      const mediaLibraryPermission =
+        await MediaLibrary.requestPermissionsAsync();
+
+        let { status } = await Location.requestForegroundPermissionsAsync();
+      setHasCameraPermission(cameraPermission.status === "granted");
+      setHasMediaLibraryPermission(mediaLibraryPermission.status === "granted");
+
+      if (status !== "granted") {
+        return;
+      }
+      if (
+        postPhoto.length !== 0 &&
+        title.length !== 0 &&
+        inputLocation.length !== 0
+      ) {
+        setButtonBgColorBgColor("#FF6C00");
+      } else {
+        setButtonBgColorBgColor("#F8F8F8");
+      }
+    })();
+  }, [postPhoto, title, inputLocation]);;
+
+  if (hasCameraPermission === null) {
+    return <View />;
+  }
+  if (hasCameraPermission === false) {
+    return <Text>No access to camera</Text>;
+  }
+  
   const handleKeyboard = () => {
     Keyboard.dismiss();
   };
 
+  const takePic = async () => {
+    let options = {
+      quality: 1,
+      base64: true,
+      exif: false,
+    };
+
+    let newPhoto = await cameraRef.current.takePictureAsync(options);
+    setPhoto(newPhoto);
+  };
+
+  if (photo) {
+    const sharePic = () => {
+      shareAsync(photo.uri).then(() => {
+        setPhoto(undefined);
+      });
+    };
+
+    const setNewPostPhoto = async () => {
+      setPostPhoto(photo.uri);
+      setPhoto(undefined);
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+
+      let latitude = location?.coords.latitude;
+      let longitude = location?.coords.longitude;
+
+      const geoCode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      let fullLocation = `${geoCode[0].city},${geoCode[0].country}`;
+      setInputLocation(fullLocation);
+    };
+
+    const savePhoto = () => {
+      MediaLibrary.saveToLibraryAsync(photo.uri).then(() => {
+        setPhoto(undefined);
+      });
+    };
+
+    const discard = () => setPhoto(undefined);
+
+    return (
+      <CameraOptions
+        photo={photo.base64}
+        setNewPostPhoto={setNewPostPhoto}
+        sharePic={sharePic}
+        savePhoto={savePhoto}
+        discard={discard}
+      />
+    );
+  }
+
+  const handleTypeOfCamera = () =>
+    setType(
+      type === Camera.Constants.Type.back
+        ? Camera.Constants.Type.front
+        : Camera.Constants.Type.back
+    );
+
+  const deletePhoto = () => setPostPhoto("");
+
+  const sendPhoto = async () => {
+    if (
+      postPhoto.length !== 0 &&
+      title.length !== 0 &&
+      inputLocation.length !== 0
+    ) {
+      let photo = postPhoto;
+
+      let address = await Location.geocodeAsync(inputLocation);
+
+      let latitude = address[0]?.latitude;
+      let longitude = address[0]?.longitude;
+
+      navigation.navigate("Publications", {
+        photo,
+        title,
+        likes: 232,
+        comments: 22,
+        photoLocation: { latitude, longitude },
+        inputLocation,
+        id: uuid.v4(),
+      });
+      clearPost();
+    }
+    return;
+  };
+
+  const clearPost = () => {
+    setLocation("");
+    setTitle("");
+    setInputLocation("");
+    setPostPhoto("");
+    setButtonBgColorBgColor("#F8F8F8")
+  };
+  
   return (
     <TouchableWithoutFeedback onPress={handleKeyboard}>
       <View
@@ -26,10 +198,27 @@ const CreatPostScreen = () => {
           <Text style={styles.title}>Create Post</Text>
         </View>
         <View style={styles.bottomBox}>
-          <View style={styles.imageLoader}></View>
-          <Text style={styles.photoInfo}>Upload photo</Text>
+          <View style={styles.imageLoader}>
+            <ImageBackground
+              style={styles.backgroundImg}
+              source={{ uri: postPhoto }}
+            >
+              <Camera style={styles.camera} ref={cameraRef} type={type} />
+              <CameraButtons
+                pickImage={pickImage}
+                handleTypeOfCamera={handleTypeOfCamera}
+                deletePhoto={deletePhoto}
+                takePic={takePic}
+              />
+            </ImageBackground>
+          </View>
           <View style={styles.form}>
-            <TextInput placeholder="Title..." style={styles.inputTitle} />
+          <TextInput
+              placeholder="Title..."
+              style={styles.inputTitle}
+              value={title}
+              onChangeText={(text) => setTitle(text)}
+            />
             <View style={styles.inputPosition}>
               <EvilIcons
                 style={styles.inputIcon}
@@ -41,13 +230,23 @@ const CreatPostScreen = () => {
                 inlineImageLeft="search_icon"
                 placeholder="Location..."
                 style={styles.input}
+                value={inputLocation}
+                onChangeText={(text) => setInputLocation(text)}
               />
             </View>
-            <TouchableOpacity activeOpacity={0.8} style={styles.btn}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[styles.btn, { backgroundColor: buttonBgColor }]}
+              onPress={sendPhoto}
+            >
               <Text style={styles.btnTitle}>Publish</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity activeOpacity={0.8} style={styles.deleteBtn}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.deleteBtn}
+            onPress={clearPost}
+          >
             <AntDesign name="delete" size={24} color="black" />
           </TouchableOpacity>
         </View>
@@ -77,18 +276,28 @@ const styles = StyleSheet.create({
   bottomBox: {
     paddingHorizontal: 16,
     marginTop: 32,
+
   },
   imageLoader: {
-    width: 343,
-    height: 240,
+    width: 344,
+    height: 300,
     backgroundColor: "#F6F6F6",
     borderRadius: 8,
   },
-  photoInfo: {
-    marginTop: 8,
+  backgroundImage: {
+    flex: 1,
+    justifyContent: "flex-end",
+    resizeMode: "cover",
+    backgroundColor: "red",
+  },
+  camera: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    zIndex: -1,
   },
   form: {
-    marginTop: 32,
+    marginTop: 0,
   },
   inputTitle: {
     height: 50,
