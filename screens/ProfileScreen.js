@@ -1,18 +1,41 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import {
   ImageBackground,
+  Image,
   StyleSheet,
   Text,
   View,
   SafeAreaView,
+  TouchableOpacity,
   FlatList,
 } from "react-native";
-import { ProfilePost } from "../components/ProfilePost";
-import { posts } from "../data/posts";
-const ProfileScreen = () => {
-  const renderItem = ({ item }) => <ProfilePost item={item} />;
+import { useDispatch, useSelector } from "react-redux";
+import { PublicationsPost } from "../components/PublicationsPost";
+import { authSignOutUser } from "../redux/auth/authOperations";
+import { fetchPosts } from "../redux/posts/postsOperations";
+
+const ProfileScreen = ({ navigation }) => {
+  const userName = useSelector((state) => state.auth.nickname);
+  const posts = useSelector((state) => state.posts.items);
+  const allPosts = useSelector((state) => state.posts.allItems);
+  const userId = useSelector((state) => state.auth.userId);
+  const profilePhoto = useSelector((state) => state.auth.userPhoto);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchPosts(userId));
+  }, [allPosts]);
+
+  const renderItem = ({ item }) => (
+    <PublicationsPost item={item} navigation={navigation} />
+  );
+
+  const signOut = () => {
+    dispatch(authSignOutUser());
+  };
+
   return (
     <View style={styles.container}>
       <ImageBackground
@@ -20,25 +43,37 @@ const ProfileScreen = () => {
         style={styles.image}
       >
         <View style={styles.profileBox}>
-          <View style={styles.photoBox} />
-          <MaterialIcons
-            style={styles.logoutIcon}
-            name="logout"
-            size={24}
-            color="#BDBDBD"
-          />
-          <Text style={styles.name}>Name</Text>
-          <SafeAreaView style={styles.bottomBox}>
-            <FlatList
-              data={posts}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              style={{
-                marginTop: 10,
-                marginBottom: 160,
-              }}
+        <View style={styles.photoBox}>
+            <Image style={styles.profilePhoto} source={{ uri: profilePhoto }} />
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.link}
+            onPress={signOut}
+          >
+            <MaterialIcons
+              style={styles.logoutIcon}
+              name="logout"
+              size={24}
+              color="#BDBDBD"
             />
-          </SafeAreaView>
+          </TouchableOpacity>
+          <Text style={styles.name}>{userName}</Text>
+          {posts.length === 0 ? (
+            <Text style={styles.error}>You don't have any posts yet.</Text>
+          ) : (
+            <SafeAreaView style={styles.bottomBox}>
+              <FlatList
+                data={posts}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.id}
+                style={{
+                  marginTop: 10,
+                  marginBottom: 160,
+                }}
+              />
+            </SafeAreaView>
+          )}
         </View>
       </ImageBackground>
     </View>
@@ -72,6 +107,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#F6F6F6",
   },
+  profilePhoto: {
+    flex: 1,
+    borderRadius: 16,
+  },
   logoutIcon: {
     marginTop: 22,
     alignSelf: "flex-end",
@@ -80,6 +119,13 @@ const styles = StyleSheet.create({
     marginTop: 32,
     fontSize: 30,
     textAlign: "center",
+  },
+  bottomBox: {
+    alignSelf: "center",
+  },
+  error: {
+    marginTop: 20,
+    alignSelf: "center",
   },
 });
 

@@ -6,6 +6,7 @@ const MapScreen = ({ route }) => {
     console.log(route);
   return (
     <View style={styles.container}>
+      <View style={styles.topBox} />
       <MapView
         style={styles.mapStyle}
         region={{
@@ -38,6 +39,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  topBox: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#BDBDBD",
   },
   mapStyle: {
     width: Dimensions.get("window").width,

@@ -1,11 +1,50 @@
 import { EvilIcons } from "@expo/vector-icons";
 
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { useDispatch } from "react-redux";
+import { useEffect, useState } from "react";
+import { fetchAllPosts } from "../redux/posts/postsOperations";
 
 export const PublicationsPost = ({ item, navigation }) => {
-  const { photo, title, comments, photoLocation, inputLocation } = item;
+
+
+  const {
+    photo,
+    title,
+    comments,
+    photoLocation,
+    inputLocation,
+    userPhoto,
+    nickname,
+    id,
+    likes,
+  } = item;
+
+  const like = async () => {
+    console.log("like");
+    const postRef = doc(db, "posts", id);
+    await updateDoc(postRef, {
+      likes: likes + 1,
+    });
+  };
   return (
     <>
+      {navigation.getState().index === 0 && (
+        <View style={styles.userBox}>
+          <View style={styles.userInformation}>
+            <Image
+              source={{
+                uri: userPhoto,
+              }}
+              style={styles.userPhoto}
+            />
+            <Text style={styles.userName}>{nickname}</Text>
+          </View>
+        </View>
+      )}
       <Image
         source={{
           uri: photo,
@@ -14,15 +53,25 @@ export const PublicationsPost = ({ item, navigation }) => {
       />
       <Text style={styles.title}>{title}</Text>
       <View style={styles.informationBox}>
-      <TouchableOpacity
+        <TouchableOpacity
           style={styles.spanBox}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("Comments")}
+          onPress={() => navigation.navigate("Comments", { photo, id })}
         >
           <EvilIcons name="comment" size={24} color="black" />
-          <Text>{comments}</Text>
+          <Text style={styles.spanValue}>{comments}</Text>
         </TouchableOpacity>
-        <View style={styles.spanBox}>
+        <TouchableOpacity style={styles.spanBox} activeOpacity={0.8}>
+          <AntDesign
+            style={styles.spanLikeIcon}
+            name="like2"
+            size={20}
+            color="black"
+            onPress={like}
+          />
+          <Text style={styles.spanValue}>{likes}</Text>
+        </TouchableOpacity>
+        <View style={styles.spanBoxLocation}>
           <EvilIcons name="location" size={24} color="black" />
           <TouchableOpacity
             activeOpacity={0.8}
@@ -36,9 +85,28 @@ export const PublicationsPost = ({ item, navigation }) => {
   );
 };
 
+
 const styles = StyleSheet.create({
+  userBox: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  userPhoto: {
+    marginTop: 10,
+    borderRadius: 50,
+    width: 35,
+    height: 35,
+  },
+  userInformation: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  userName: {
+    marginLeft: 10,
+    fontSize: 13,
+  },
   image: {
-    marginTop: 32,
+    marginTop: 5,
     borderRadius: 8,
     width: 343,
     height: 240,
@@ -50,10 +118,19 @@ const styles = StyleSheet.create({
   informationBox: {
     marginTop: 12,
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: 343,
   },
   spanBox: {
     flexDirection: "row",
+    alignItems: "center",
+  },
+  spanLikeIcon: {
+    marginLeft: 10,
+  },
+  spanBoxLocation: {
+    flexDirection: "row",
+    marginLeft: "auto",
+  },
+  spanValue: {
+    marginLeft: 5,
   },
 });

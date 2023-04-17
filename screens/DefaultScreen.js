@@ -1,62 +1,74 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect} from "react";
 
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   SafeAreaView,
   FlatList,
+  TouchableOpacity,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 
 import { PublicationsPost } from "../components/PublicationsPost";
 
-import { posts } from "../data/posts";  
+import { authSignOutUser } from "../redux/auth/authOperations"; 
+import { fetchAllPosts } from "../redux/posts/postsOperations";
 
-const DefaultPostsScreen = ({ route, navigation }) => {
-  const [allPosts, setAllPosts] = useState([...posts]);
+const DefaultPostsScreen = ({ navigation }) => {
+  const allPosts = useSelector((state) => state.posts.allItems);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchAllPosts());
+  }, []);
+
   const renderItem = ({ item }) => (
     <PublicationsPost item={item} navigation={navigation} />
   );
 
-  useEffect(() => {
-    if (route.params) {
-        setAllPosts((prevSt) => [route.params, ...prevSt]);
-    }
-  }, [route.params]);
+  const signOut = () => {
+    dispatch(authSignOutUser());
+  };
+
+  const updatePosts = () => {
+    dispatch(fetchAllPosts());
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.topBox}>
+      <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.updateIcon}
+          onPress={updatePosts}
+        >
+          <MaterialIcons name="update" size={24} color="black" />
+        </TouchableOpacity>
         <Text style={styles.title}>Publications</Text>
-        <MaterialIcons
-          style={styles.logoutIcon}
-          name="logout"
-          size={24}
-          color="#BDBDBD"
-        />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.link}
+          onPress={signOut}
+        >
+          <MaterialIcons
+            style={styles.logoutIcon}
+            name="logout"
+            size={24}
+            color="#BDBDBD"
+          />
+        </TouchableOpacity>
       </View>
       <SafeAreaView style={styles.bottomBox}>
-        <View style={styles.userBox}>
-          <Image
-            source={{
-              uri: "https://nationaltoday.com/wp-content/uploads/2022/05/National-Snail-Day.jpg.webp",
-            }}
-            style={styles.userPhoto}
-          />
-          <View style={styles.userInformation}>
-            <Text style={styles.userName}>Pavlo</Text>
-            <Text style={styles.userMail}>ravlyk@mail.com</Text>
-          </View>
-        </View>
         <FlatList
           data={allPosts}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
           style={{
-            marginTop: 10,
-            marginBottom: 160,
+            marginBottom: 100,
           }}
         />
       </SafeAreaView>
@@ -81,15 +93,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
+
     marginBottom: 11,
+  },
+  updateIcon: {
+    marginRight: "auto",
+    marginBottom: 10,
   },
   logoutIcon: {
     marginLeft: 103,
     marginBottom: 12,
   },
   bottomBox: {
-    paddingHorizontal: 16,
-    marginTop: 32,
+    marginTop: 5,
+    alignSelf: "center",
   },
   userBox: {
     flexDirection: "row",

@@ -7,9 +7,13 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as Location from "expo-location";
 
-import { shareAsync } from "expo-sharing";
+import * as Sharing from "expo-sharing";
 
 import uuid from "react-native-uuid";
+
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 import {
   View,
@@ -25,13 +29,20 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { CameraOptions } from "../components/CameraOptions";
 import { CameraButtons } from "../components/CameraButton";
+import { useDispatch, useSelector } from "react-redux";
+import { addPost, fetchAllPosts } from "../redux/posts/postsOperations";
 
 const CreatPostScreen = ({ navigation }) => {
+  const user = useSelector((state) => state.auth.nickname);
+  const userId = useSelector((state) => state.auth.userId);
+  const userPhoto = useSelector((state) => state.auth.userPhoto);
   let cameraRef = useRef(null);
   const [hasCameraPermission, setHasCameraPermission] = useState();
   const [hasMediaLibraryPermission, setHasMediaLibraryPermission] = useState();
   const [photo, setPhoto] = useState(null); 
-  const [postPhoto, setPostPhoto] = useState("");
+  const [postPhoto, setPostPhoto] = useState(
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/HD_transparent_picture.png/640px-HD_transparent_picture.png"
+  );
   const [title, setTitle] = useState("");
   const [type, setType] = useState(Camera.Constants.Type.back);
 
@@ -40,18 +51,7 @@ const CreatPostScreen = ({ navigation }) => {
 
   const [buttonBgColor, setButtonBgColorBgColor] = useState("#F8F8F8");
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setPostPhoto(result.assets[0].uri);
-    }
-  };
+  const dispatch = useDispatch();
 
   useEffect(() => {
     (async () => {
@@ -88,7 +88,18 @@ const CreatPostScreen = ({ navigation }) => {
   const handleKeyboard = () => {
     Keyboard.dismiss();
   };
+const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
+    if (!result.canceled) {
+      setPostPhoto(result.assets[0].uri);
+    }
+  };
   const takePic = async () => {
     let options = {
       quality: 1,
@@ -102,7 +113,7 @@ const CreatPostScreen = ({ navigation }) => {
 
   if (photo) {
     const sharePic = () => {
-      shareAsync(photo.uri).then(() => {
+      Sharing.shareAsync(photo.uri).then(() => {
         setPhoto(undefined);
       });
     };
@@ -151,7 +162,11 @@ const CreatPostScreen = ({ navigation }) => {
         : Camera.Constants.Type.back
     );
 
-  const deletePhoto = () => setPostPhoto("");
+
+    const deletePhoto = () =>
+    setPostPhoto(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/HD_transparent_picture.png/640px-HD_transparent_picture.png"
+    );
 
   const sendPhoto = async () => {
     if (
@@ -159,32 +174,60 @@ const CreatPostScreen = ({ navigation }) => {
       title.length !== 0 &&
       inputLocation.length !== 0
     ) {
-      let photo = postPhoto;
-
       let address = await Location.geocodeAsync(inputLocation);
 
       let latitude = address[0]?.latitude;
       let longitude = address[0]?.longitude;
 
-      navigation.navigate("Publications", {
-        photo,
+      navigation.navigate("Publications");
+
+      const id = uuid.v4();
+      const photoLink = await uploadPhotoToServer(postPhoto);
+
+      const date = new Date().getTime();
+      const coords =
+        latitude && longitude ? { latitude, longitude } : "noCoords";
+      const newPost = {
+        createdAt: date,
+        photo: photoLink,
         title,
-        likes: 232,
-        comments: 22,
-        photoLocation: { latitude, longitude },
+        likes: [],
+        comments: 0,
+        photoLocation: coords,
         inputLocation,
-        id: uuid.v4(),
-      });
+        id,
+        userId,
+        userPhoto,
+        nickname: user,
+      };
+      await setDoc(doc(db, "posts", `${id}`), newPost);
+      
+      dispatch(addPost(newPost))
+      dispatch(fetchAllPosts());
       clearPost();
     }
+
     return;
+  };
+
+  const uploadPhotoToServer = async (photo) => {
+    const storage = getStorage();
+    const id = uuid.v4();
+    const storageRef = ref(storage, `images/${id}`);
+    const resp = await fetch(photo);
+    const file = await resp.blob();
+    await uploadBytes(storageRef, file);
+    const link = await getDownloadURL(ref(storage, `images/${id}`));
+    return link;
   };
 
   const clearPost = () => {
     setLocation("");
     setTitle("");
     setInputLocation("");
-    setPostPhoto("");
+    setPostPhoto(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/HD_transparent_picture.png/640px-HD_transparent_picture.png"
+    );
     setButtonBgColorBgColor("#F8F8F8")
   };
   
@@ -276,7 +319,7 @@ const styles = StyleSheet.create({
   bottomBox: {
     paddingHorizontal: 16,
     marginTop: 32,
-
+    alignSelf: "center",
   },
   imageLoader: {
     width: 344,
@@ -284,12 +327,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
     borderRadius: 8,
   },
-  backgroundImage: {
-    flex: 1,
-    justifyContent: "flex-end",
-    resizeMode: "cover",
-    backgroundColor: "red",
-  },
+  backgroundImg: {},
   camera: {
     position: "relative",
     width: "100%",
